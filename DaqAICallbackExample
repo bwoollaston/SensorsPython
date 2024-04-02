@@ -105,16 +105,19 @@ class MainApplication(ttk.Frame):
         for col_index, col_weight in enumerate(columns):
             widget.grid_columnconfigure(col_index, weight=col_weight)
 
-    # invoked on start button click
     def start_handler(self):
-        self.btnStart.config(state=tk.DISABLED)
-        self.btnEnd.config(state=tk.ENABLED)
-        ai_continuous_start(1000,1000)
+      self.cboDevice.config(state=tk.DISABLED)
+      self.cboAIChannels.config(state=tk.DISABLED)
+      self.btnStart.config(state=tk.DISABLED)
+      self.btnEnd.config(state=tk.NORMAL)
+      ai_continuous_start(1000,1000)
     # invoked on end button click
     def end_handler(self):
-        self.btnStart.config(state=tk.ENABLED)
-        self.btnEnd.config(state=tk.DISABLED)
-        self.task.stop()
+      self.cboDevice.config(state=tk.NORMAL)
+      self.cboAIChannels.config(state=tk.NORMAL)
+      self.btnStart.config(state=tk.NORMAL)
+      self.btnEnd.config(state=tk.DISABLED)
+      self.task.close()
 
     def device_changed(self, event, sender):
         selected_item = sender.cboDevice.get()
