@@ -79,7 +79,7 @@ class MainApplication(ttk.Frame):
 
         self.btnStart = ttk.Button(self, text="Start Measurement", command=self.start_handler)
         self.btnStart.bind("<Button-1>")
-        self.btnEnd = ttk.Button(self, text="End Measurement", command=self.end_handler)
+        self.btnEnd = ttk.Button(self, text="End Measurement", command=self.end_handler, state=tk.DISABLED)
 
         # Add objects to the frame
         self.apply_grid(self, [1,1,1,1,1], [1,1])
@@ -107,9 +107,13 @@ class MainApplication(ttk.Frame):
 
     # invoked on start button click
     def start_handler(self):
+        self.btnStart.config(state=tk.DISABLED)
+        self.btnEnd.config(state=tk.ENABLED)
         ai_continuous_start(1000,1000)
     # invoked on end button click
     def end_handler(self):
+        self.btnStart.config(state=tk.ENABLED)
+        self.btnEnd.config(state=tk.DISABLED)
         self.task.stop()
 
     def device_changed(self, event, sender):
