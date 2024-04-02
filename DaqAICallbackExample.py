@@ -3,6 +3,7 @@
 import re
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
+from nidaqmx.constants import TerminalConfiguration
 from nidaqmx.system.physical_channel import PhysicalChannel, _PhysicalChannelAlternateConstructor
 from nidaqmx.utils import unflatten_channel_string, flatten_channel_string
 import tkinter as tk
@@ -14,13 +15,17 @@ def average(lst):
     return sum(lst) / float(len(lst))
 
 def ai_continuous_start(sample_rate, sample_interval):
-    app.task.ai_channels.add_ai_voltage_chan(f"{app.cboDevice.get()}/{app.cboAIChannels.get()}")
+    app.task.stop() #stop task, doesnt need to be running but this makes sure it isn't
+    if(len(app.task.ai_channels)<1):
+        app.task.ai_channels.add_ai_voltage_chan(f"{app.cboDevice.get()}/{app.cboAIChannels.get()}", max_val=10, min_val=-10, terminal_config=TerminalConfiguration.DIFF)
+    app.task.register_every_n_samples_acquired_into_buffer_event(sample_interval, None)
     app.task.timing.cfg_samp_clk_timing(sample_rate, sample_mode=AcquisitionType.CONTINUOUS)
     app.task.register_every_n_samples_acquired_into_buffer_event(sample_interval, ai_callback)
     app.task.start()
     return
 
 def ai_callback(task_handle, every_n_samples_event_type, number_of_samples, callback_data):
+    samples = []
     samples = app.task.read(int(number_of_samples))
     app.current_voltage.set(f"{average(samples): .3f} {app.MEASUREMENT_UNITS}")
     return
@@ -78,7 +83,6 @@ class MainApplication(ttk.Frame):
         self.labeled_control_measurement = Label_ctrl_item(self, self.txtMeasurement, "Voltage [V]")
 
         self.btnStart = ttk.Button(self, text="Start Measurement", command=self.start_handler)
-        self.btnStart.bind("<Button-1>")
         self.btnEnd = ttk.Button(self, text="End Measurement", command=self.end_handler, state=tk.DISABLED)
 
         # Add objects to the frame
@@ -106,18 +110,18 @@ class MainApplication(ttk.Frame):
             widget.grid_columnconfigure(col_index, weight=col_weight)
 
     def start_handler(self):
-      self.cboDevice.config(state=tk.DISABLED)
-      self.cboAIChannels.config(state=tk.DISABLED)
-      self.btnStart.config(state=tk.DISABLED)
-      self.btnEnd.config(state=tk.NORMAL)
-      ai_continuous_start(1000,1000)
+        self.cboDevice.config(state=tk.DISABLED)
+        self.cboAIChannels.config(state=tk.DISABLED)
+        self.btnStart.config(state=tk.DISABLED)
+        self.btnEnd.config(state=tk.NORMAL)
+        ai_continuous_start(1000,1000)
     # invoked on end button click
     def end_handler(self):
-      self.cboDevice.config(state=tk.NORMAL)
-      self.cboAIChannels.config(state=tk.NORMAL)
-      self.btnStart.config(state=tk.NORMAL)
-      self.btnEnd.config(state=tk.DISABLED)
-      self.task.close()
+        self.cboDevice.config(state=tk.NORMAL)
+        self.cboAIChannels.config(state=tk.NORMAL)
+        self.btnStart.config(state=tk.NORMAL)
+        self.btnEnd.config(state=tk.DISABLED)
+        self.task.stop()
 
     def device_changed(self, event, sender):
         selected_item = sender.cboDevice.get()
