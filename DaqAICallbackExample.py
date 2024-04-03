@@ -2,12 +2,15 @@
 
 import re
 import nidaqmx
+import ttkthemes
 from nidaqmx.constants import AcquisitionType
 from nidaqmx.constants import TerminalConfiguration
 from nidaqmx.system.physical_channel import PhysicalChannel, _PhysicalChannelAlternateConstructor
 from nidaqmx.utils import unflatten_channel_string, flatten_channel_string
 import tkinter as tk
 from tkinter import ttk
+from ttkthemes import ThemedTk
+from tkinter import messagebox
 
 def average(lst):
     if not lst:  # Handle empty list
@@ -18,18 +21,21 @@ def ai_continuous_start(sample_rate, sample_interval):
     app.task.stop() #stop task, doesnt need to be running but this makes sure it isn't
     if(len(app.task.ai_channels)<1):
         app.task.ai_channels.add_ai_voltage_chan(f"{app.cboDevice.get()}/{app.cboAIChannels.get()}", max_val=10, min_val=-10, terminal_config=TerminalConfiguration.DIFF)
-    app.task.register_every_n_samples_acquired_into_buffer_event(sample_interval, None)
+    app.task.register_every_n_samples_acquired_into_buffer_event(sample_interval, None) #unregister callback by passing null reference
     app.task.timing.cfg_samp_clk_timing(sample_rate, sample_mode=AcquisitionType.CONTINUOUS)
     app.task.register_every_n_samples_acquired_into_buffer_event(sample_interval, ai_callback)
     app.task.start()
     return
 
 def ai_callback(task_handle, every_n_samples_event_type, number_of_samples, callback_data):
-    samples = []
-    samples = app.task.read(int(number_of_samples))
-    app.current_voltage.set(f"{average(samples): .3f} {app.MEASUREMENT_UNITS}")
-    return
-
+    try:
+        samples = []
+        samples = app.task.read(int(number_of_samples))
+        app.current_voltage.set(f"{average(samples): .3f} {app.MEASUREMENT_UNITS}")
+        return 0
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+        app.end_handler()
 # class encapsulating a control and its label
 class Label_ctrl_item(ttk.Frame):
     def __init__(self, parent, control, label_text):
@@ -52,7 +58,7 @@ class Label_ctrl_item(ttk.Frame):
 class MainApplication(ttk.Frame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent)
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
 
         # Define class constants
@@ -82,7 +88,7 @@ class MainApplication(ttk.Frame):
         self.txtMeasurement = ttk.Label(self, textvariable=self.current_voltage)
         self.labeled_control_measurement = Label_ctrl_item(self, self.txtMeasurement, "Voltage [V]")
 
-        self.btnStart = ttk.Button(self, text="Start Measurement", command=self.start_handler)
+        self.btnStart = ttk.Button(self, text="Start Measurement", command=self.start_handler, style='Start.TButton')
         self.btnEnd = ttk.Button(self, text="End Measurement", command=self.end_handler, state=tk.DISABLED)
 
         # Add objects to the frame
@@ -149,7 +155,7 @@ def on_closing():
 if __name__ == "__main__":
     system = nidaqmx.system
     devices = []
-    root = tk.Tk()
+    root = ThemedTk(theme="arc")
 
     # IMPOTANT: close your tasks when leaving the program with a closing event handler
     root.protocol("WM_DELETE_WINDOW", on_closing)
