@@ -162,6 +162,7 @@ if __name__ == "__main__":
 
     # IMPOTANT: close your tasks when leaving the program with a closing event handler
     root.protocol("WM_DELETE_WINDOW", on_closing)
+
     root.geometry("400x300")
     app = MainApplication(root)
     app.grid(row=0, column=0, padx=5, pady=5)
